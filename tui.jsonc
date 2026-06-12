@@ -1,0 +1,4 @@
+{
+  // Copy this into your OpenCode TUI config, or point to this package after building/linking.
+  "plugin": ["opencode-rotator-plugin"]
+}

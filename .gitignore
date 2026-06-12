@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files and caches
+tmp/
+temp/
+.tmp/
+.temp/
+.cache/
+.parcel-cache/
+.turbo/
+.vite/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+
+# Local OpenCode and rotator auth artifacts
+.opencode/
+opencode-auth.json
+auth.json
+accounts.json
+accounts.*.json
+*.cookies.json
+*.tokens.json
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,71 @@
+{
+  "name": "opencode-rotator-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenCode TUI sidebar plugin for the ChatGPT account rotator server.",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "tui",
+    "chatgpt",
+    "account-rotator"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xnnnc/opencode-rotator-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xnnnc/opencode-rotator-plugin/issues"
+  },
+  "homepage": "https://github.com/xnnnc/opencode-rotator-plugin#readme",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "scripts",
+    "opencode.jsonc",
+    "tui.jsonc",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tui": {
+      "types": "./dist/tui.d.ts",
+      "default": "./dist/tui.tsx"
+    }
+  },
+  "oc-plugin": [
+    "server",
+    "tui"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/prepare-tui-dist.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.92",
+    "@opentui/solid": "^0.1.92",
+    "solid-js": "^1.9.10"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.4.3",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.4.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
