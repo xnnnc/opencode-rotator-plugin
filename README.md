@@ -138,7 +138,7 @@ The plugin strips a trailing slash from this value before building endpoint URLs
 
 State polling uses `GET /api/state`. Actions use protected `POST` endpoints and require a rotator API token.
 
-Set `OPENCODE_ROTATOR_TOKEN` in the environment where OpenCode runs, using the token printed by the rotator server. The plugin also accepts `ROTATOR_API_TOKEN` for compatibility. Do not commit tokens, paste them into issues, or store them in shared shell profiles.
+Start the rotator GUI server first. The plugin reads the current local action token from the server's user config `api-token` file. To override automatic discovery, set `OPENCODE_ROTATOR_TOKEN` in the environment where OpenCode runs, using the token printed by the rotator server. The plugin also accepts `ROTATOR_API_TOKEN` for compatibility. Do not commit tokens, paste them into issues, or store them in shared shell profiles.
 
 ## Usage flow
 
@@ -146,7 +146,7 @@ Set `OPENCODE_ROTATOR_TOKEN` in the environment where OpenCode runs, using the t
 2. Start the rotator server from the root project with `npm run gui` or `open-gui.bat`.
 3. Build and link this plugin into OpenCode.
 4. Set `OPENCODE_ROTATOR_URL` if the server is not on `http://127.0.0.1:4317`.
-5. Set `OPENCODE_ROTATOR_TOKEN` if you want the sidebar action buttons to work.
+5. Set `OPENCODE_ROTATOR_TOKEN` only if you want to override the token file created by the running rotator server.
 6. Open the OpenCode TUI and look for the Rotator sidebar panel.
 7. Use the panel for quick status checks, usage refresh, watch toggle, or manual switch to the next healthy account.
 

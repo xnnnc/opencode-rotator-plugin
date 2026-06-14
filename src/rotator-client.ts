@@ -1,3 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { resolve } from "node:path";
+
 import type {
   CodexUsage,
   RotatorAction,
@@ -8,9 +12,27 @@ import type {
 } from "./types.js";
 
 const DEFAULT_ROTATOR_URL = "http://127.0.0.1:4317";
+const ROTATOR_APP_NAME = "opencode-chatgpt-account-rotator";
 
 export function getRotatorBaseUrl(): string {
   return (process.env.OPENCODE_ROTATOR_URL || DEFAULT_ROTATOR_URL).replace(/\/$/, "");
+}
+
+function userConfigDir(appName = ROTATOR_APP_NAME): string {
+  if (process.env.ROTATOR_CONFIG_DIR) return resolve(process.env.ROTATOR_CONFIG_DIR);
+  if (process.platform === "win32") return resolve(process.env.APPDATA || resolve(homedir(), "AppData/Roaming"), appName);
+  if (process.platform === "darwin") return resolve(homedir(), "Library/Application Support", appName);
+  return resolve(process.env.XDG_CONFIG_HOME || resolve(homedir(), ".config"), appName);
+}
+
+function readTokenFile(): string {
+  const tokenFile = resolve(userConfigDir(), "api-token");
+  if (!existsSync(tokenFile)) return "";
+  return readFileSync(tokenFile, "utf8").trim();
+}
+
+function getActionToken(): string {
+  return process.env.OPENCODE_ROTATOR_TOKEN || process.env.ROTATOR_API_TOKEN || readTokenFile();
 }
 
 export async function fetchRotatorState(signal?: AbortSignal): Promise<RotatorState> {
@@ -37,6 +59,22 @@ export async function fetchRotatorState(signal?: AbortSignal): Promise<RotatorSt
   return payload.state;
 }
 
+function describeActionError(response: Response, payload: RotatorApiActionResponse | null): string {
+  const detail = payload?.error || payload?.stderr || response.statusText;
+  return detail ? `${response.status} ${detail}` : `Rotator action failed: ${response.status}`;
+}
+
+async function readActionResponse(response: Response): Promise<RotatorApiActionResponse | null> {
+  const text = await response.text();
+  if (!text.trim()) return null;
+
+  try {
+    return JSON.parse(text) as RotatorApiActionResponse;
+  } catch {
+    return { ok: false, error: text.trim() };
+  }
+}
+
 async function getActionRequest(action: RotatorAction, signal?: AbortSignal): Promise<{ path: string; body: Record<string, unknown> }> {
   switch (action) {
     case "usage":
@@ -54,9 +92,9 @@ async function getActionRequest(action: RotatorAction, signal?: AbortSignal): Pr
 
 export async function runRotatorAction(action: RotatorAction, signal?: AbortSignal): Promise<RotatorApiActionResponse> {
   const request = await getActionRequest(action, signal);
-  const token = process.env.OPENCODE_ROTATOR_TOKEN || process.env.ROTATOR_API_TOKEN || "";
+  const token = getActionToken();
   if (!token) {
-    throw new Error("Rotator action token missing. Set OPENCODE_ROTATOR_TOKEN from the GUI server output.");
+    throw new Error("Rotator action token missing. Start the GUI server or set OPENCODE_ROTATOR_TOKEN.");
   }
 
   const init: RequestInit = {
@@ -74,10 +112,10 @@ export async function runRotatorAction(action: RotatorAction, signal?: AbortSign
   }
 
   const response = await fetch(`${getRotatorBaseUrl()}${request.path}`, init);
-  const payload = (await response.json()) as RotatorApiActionResponse;
+  const payload = await readActionResponse(response);
 
-  if (!response.ok || !payload.ok) {
-    throw new Error(payload.error || payload.stderr || `Rotator action failed: ${response.status} ${response.statusText}`);
+  if (!response.ok || !payload?.ok) {
+    throw new Error(describeActionError(response, payload));
   }
 
   return payload;

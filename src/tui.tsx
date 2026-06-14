@@ -57,6 +57,13 @@ function formatActionDetail(message: string | undefined): string {
   return compactAccountLabel(firstLine) ?? "done";
 }
 
+function formatErrorDetail(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const firstLine = message.split(/\r?\n/, 1)[0]?.trim();
+  if (!firstLine) return "unknown error";
+  return firstLine.length <= 42 ? firstLine : `${firstLine.slice(0, 41)}…`;
+}
+
 function ActionButton(props: {
   api: TuiPluginApi;
   config: ActionButtonConfig;
@@ -118,9 +125,9 @@ function SidebarRotatorPanel(props: { api: TuiPluginApi }) {
           void reload();
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (disposed || abortController.signal.aborted) return;
-        setActionMessage(`last: ${actionTitle(action)} failed`);
+        setActionMessage(`last: ${actionTitle(action)} failed (${formatErrorDetail(error)})`);
         void reload();
       })
       .finally(() => {
