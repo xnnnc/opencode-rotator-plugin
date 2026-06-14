@@ -61,7 +61,10 @@ function formatErrorDetail(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   const firstLine = message.split(/\r?\n/, 1)[0]?.trim();
   if (!firstLine) return "unknown error";
-  return firstLine.length <= 42 ? firstLine : `${firstLine.slice(0, 41)}…`;
+  if (/token missing/i.test(firstLine)) return "token missing";
+  if (/bad token|invalid rotator api token/i.test(firstLine)) return "bad token";
+  if (/fetch failed|ECONNREFUSED|offline/i.test(firstLine)) return "server offline";
+  return firstLine.length <= 24 ? firstLine : `${firstLine.slice(0, 23)}…`;
 }
 
 function ActionButton(props: {

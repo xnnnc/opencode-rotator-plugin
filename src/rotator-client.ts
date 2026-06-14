@@ -61,6 +61,7 @@ export async function fetchRotatorState(signal?: AbortSignal): Promise<RotatorSt
 
 function describeActionError(response: Response, payload: RotatorApiActionResponse | null): string {
   const detail = payload?.error || payload?.stderr || response.statusText;
+  if (response.status === 403 && /token/i.test(detail)) return "bad token";
   return detail ? `${response.status} ${detail}` : `Rotator action failed: ${response.status}`;
 }
 
@@ -94,7 +95,7 @@ export async function runRotatorAction(action: RotatorAction, signal?: AbortSign
   const request = await getActionRequest(action, signal);
   const token = getActionToken();
   if (!token) {
-    throw new Error("Rotator action token missing. Start the GUI server or set OPENCODE_ROTATOR_TOKEN.");
+    throw new Error("token missing");
   }
 
   const init: RequestInit = {
