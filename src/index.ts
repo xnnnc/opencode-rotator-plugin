@@ -1,15 +1,12 @@
-type ServerPluginModule = {
-  id: string;
-  server: () => Record<string, never>;
-};
+import type { Plugin, PluginModule } from "@opencode-ai/plugin";
 
-function RotatorServerPlugin(): Record<string, never> {
+export const RotatorServerPlugin: Plugin = async () => {
   return {};
-}
+};
 
 const pluginModule = {
   id: "opencode-rotator-plugin",
   server: RotatorServerPlugin,
-} satisfies ServerPluginModule;
+} satisfies PluginModule;
 
 export default pluginModule;
