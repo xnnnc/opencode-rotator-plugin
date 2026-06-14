@@ -43,7 +43,8 @@
     },
     "./tui": {
       "types": "./dist/tui.d.ts",
-      "default": "./dist/tui.tsx"
+      "import": "./dist/tui.js",
+      "default": "./dist/tui.js"
     }
   },
   "oc-plugin": [
@@ -51,7 +52,7 @@
     "tui"
   ],
   "scripts": {
-    "build": "tsc && node scripts/prepare-tui-dist.mjs",
+    "build": "tsc && bun scripts/build-tui.ts && node scripts/prepare-tui-dist.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -35,7 +35,7 @@ If the server is offline, the sidebar stays loaded and shows an offline message 
 ## Features
 
 - Registers an OpenCode server plugin entry point from `dist/index.js`.
-- Registers an OpenCode TUI sidebar plugin from `dist/tui.tsx`.
+- Registers an OpenCode TUI sidebar plugin from `dist/tui.js`.
 - Polls the rotator server every 15 seconds with `GET /api/state`.
 - Shows the active account label, account status, auth presence, plan type, 5 hour usage, 7 day usage, watch status, and account count.
 - Adds TUI actions for usage refresh, watch start or stop, and switching to the next healthy account.
@@ -63,10 +63,10 @@ npm run build
 The build script is:
 
 ```bash
-tsc && node scripts/prepare-tui-dist.mjs
+tsc && bun scripts/build-tui.ts && node scripts/prepare-tui-dist.mjs
 ```
 
-That compiles TypeScript and then copies `src/tui.tsx` to `dist/tui.tsx`. The copy is intentional because the package exports the TUI plugin from `dist/tui.tsx`.
+That compiles TypeScript declarations, then uses Bun with the OpenTUI Solid plugin to emit the TUI entry as `dist/tui.js` so package loaders can import it as a normal ESM JavaScript file.
 
 Run a type-only check without writing build output:
 
@@ -78,6 +78,12 @@ The typecheck script is:
 
 ```bash
 tsc --noEmit
+```
+
+Quickly verify the server entry shape after building:
+
+```bash
+node --input-type=module -e "const m=await import('./dist/index.js'); if (typeof m.default?.server !== 'function') throw new Error('bad server export')"
 ```
 
 ## OpenCode configuration
@@ -168,7 +174,8 @@ opencode-rotator-plugin/
   tui.jsonc                      Example OpenCode TUI plugin config
   package.json                   Package metadata, exports, scripts, and OpenCode plugin entries
   package-lock.json              Locked npm dependency graph
-  scripts/prepare-tui-dist.mjs   Copies src/tui.tsx to dist/tui.tsx after build
+  scripts/build-tui.ts           Bundles the OpenTUI Solid entry to dist/tui.js
+  scripts/prepare-tui-dist.mjs   Verifies the bundled dist/tui.js entry exists
   src/index.ts                   OpenCode server plugin entry point
   src/tui.tsx                    OpenCode TUI sidebar panel
   src/rotator-client.ts          Rotator API client and panel formatting
@@ -222,7 +229,7 @@ State polling does not require the action token. The `usage`, `watch`, and `swit
 
 ### The TUI plugin does not appear
 
-Run `npm run build`, check that `dist/index.js` and `dist/tui.tsx` exist, and confirm that the package is listed in both `opencode.jsonc` and `tui.jsonc` for your OpenCode setup.
+Run `npm run build`, check that `dist/index.js` and `dist/tui.js` exist, and confirm that the package is listed in both `opencode.jsonc` and `tui.jsonc` for your OpenCode setup.
 
 ### Usage shows `n/a`
 
