@@ -16,9 +16,9 @@ type ActionButtonConfig = {
 };
 
 const ACTION_BUTTONS: ActionButtonConfig[] = [
-  { action: "usage", label: "usage", description: "refresh snapshots" },
-  { action: "watch-toggle", label: "watch", description: "start / stop" },
-  { action: "switch-next", label: "switch", description: "next healthy" },
+  { action: "usage", label: "u", description: "refresh usage" },
+  { action: "watch-toggle", label: "w", description: "start / stop watch" },
+  { action: "switch-next", label: "s", description: "switch next" },
 ];
 
 function actionTitle(action: RotatorAction): string {
@@ -34,14 +34,29 @@ function actionTitle(action: RotatorAction): string {
 
 function lineColor(line: string, status: RotatorPanelState["status"], api: TuiPluginApi) {
   const theme = api.theme.current;
+  const usagePercent = Number(line.match(/\b(\d+(?:\.\d+)?)%/)?.[1]);
   if (status === "offline") return theme.error;
-  if (line.startsWith("active:")) return theme.text;
-  if (line.startsWith("plan:")) return theme.textMuted;
-  if (line.startsWith("usage:")) return theme.warning;
-  if (line.startsWith("watch: on pid")) return theme.success;
-  if (line.startsWith("watch: stopped") || line.startsWith("watch: idle")) return theme.textMuted;
-  if (line.startsWith("last:")) return theme.success;
+  if (["Active", "Usage", "Actions", "Last"].includes(line)) return theme.text;
+  if (line.startsWith("  healthy")) return theme.success;
+  if (usagePercent >= 90) return theme.error;
+  if (usagePercent >= 75) return theme.warning;
+  if (line.startsWith("  5h") || line.startsWith("  7d")) return theme.warning;
   return theme.textMuted;
+}
+
+function headerInfo(panel: RotatorPanelState): { status: string; pid: number | null; color: "error" | "success" | "textMuted" } {
+  if (panel.status === "offline") return { status: "offline", pid: null, color: "error" };
+  if (panel.status === "loading") return { status: "loading", pid: null, color: "textMuted" };
+  return { status: panel.header.watchStatus, pid: panel.header.pid, color: panel.header.watchStatus === "watching" ? "success" : "textMuted" };
+}
+
+function headerText(panel: RotatorPanelState): string {
+  const info = headerInfo(panel);
+  return `Rotator ● ${info.status}${info.pid ? ` ● pid ${info.pid}` : ""}`;
+}
+
+function lastLine(message: string): string {
+  return `  ${message.replace(/^last: /, "")}`;
 }
 
 function compactAccountLabel(message: string): string | null {
@@ -70,6 +85,7 @@ function formatErrorDetail(error: unknown): string {
 function ActionButton(props: {
   api: TuiPluginApi;
   config: ActionButtonConfig;
+  description?: string;
   busy: boolean;
   onRun: (action: RotatorAction) => void;
 }) {
@@ -85,9 +101,19 @@ function ActionButton(props: {
       }}
     >
       <text fg={props.busy ? theme.textMuted : theme.primary} wrapMode="none">
-        {`  [${props.config.label}] ${props.config.description}`}
+        {`  [${props.config.label}] ${props.description ?? props.config.description}`}
       </text>
     </box>
+  );
+}
+
+function HeaderLine(props: { api: TuiPluginApi; panel: RotatorPanelState }) {
+  const theme = props.api.theme.current;
+  const info = headerInfo(props.panel);
+  return (
+    <text fg={theme[info.color]} wrapMode="none">
+      <b>{headerText(props.panel)}</b>
+    </text>
   );
 }
 
@@ -149,20 +175,7 @@ function SidebarRotatorPanel(props: { api: TuiPluginApi }) {
 
   return (
     <box gap={0}>
-      <text fg={props.api.theme.current.text}>
-        <b>Rotator</b>
-      </text>
-      <box gap={0}>
-        <text fg={props.api.theme.current.textMuted} wrapMode="none">
-          actions
-        </text>
-        {ACTION_BUTTONS.map((config) => (
-          <ActionButton api={props.api} config={config} busy={busy()} onRun={runAction} />
-        ))}
-        <text fg={busy() ? props.api.theme.current.warning : props.api.theme.current.success} wrapMode="none">
-          {actionMessage()}
-        </text>
-      </box>
+      <HeaderLine api={props.api} panel={panel()} />
       <box gap={0}>
         {panel().lines.map((line) => (
           <text fg={lineColor(line, panel().status, props.api)} wrapMode="none">
@@ -170,6 +183,21 @@ function SidebarRotatorPanel(props: { api: TuiPluginApi }) {
           </text>
         ))}
       </box>
+      <text fg={props.api.theme.current.text} wrapMode="none">
+        Actions
+      </text>
+      <box gap={0}>
+        {ACTION_BUTTONS.map((config) => {
+          const description = config.action === "watch-toggle" ? `${headerInfo(panel()).status === "watching" ? "stop" : "start"} watch` : config.description;
+          return <ActionButton api={props.api} config={config} description={description} busy={busy()} onRun={runAction} />;
+        })}
+      </box>
+      <text fg={props.api.theme.current.text} wrapMode="none">
+        Last
+      </text>
+      <text fg={busy() ? props.api.theme.current.warning : props.api.theme.current.success} wrapMode="none">
+        {lastLine(actionMessage())}
+      </text>
     </box>
   );
 }

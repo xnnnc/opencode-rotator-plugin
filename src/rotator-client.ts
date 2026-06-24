@@ -122,8 +122,14 @@ export async function runRotatorAction(action: RotatorAction, signal?: AbortSign
   return payload;
 }
 
-function formatPercent(value: number | null | undefined): string {
-  return value === null || value === undefined ? "n/a" : `${value}%`;
+function formatUsagePercent(value: number | null | undefined): string {
+  return value === null || value === undefined ? " n/a" : `${String(value).padStart(3, " ")}%`;
+}
+
+function usageBar(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "░░░░░░░░░░░░░░░";
+  const filled = Math.max(0, Math.min(15, Math.round((value / 100) * 15)));
+  return `${"█".repeat(filled)}${"░".repeat(15 - filled)}`;
 }
 
 function formatPlanType(planType: string | null | undefined, fallback = "n/a"): string {
@@ -143,41 +149,48 @@ function truncate(value: string, maxLength: number): string {
 function formatAccountLine(state: RotatorState): string {
   const active = state.accounts.find((account) => account.active) ?? state.accounts[state.activeIndex];
   if (!active) return "active: no account";
+  return `  #${active.index} ${truncate(active.label, 28)}`;
+}
+
+function formatAccountStatusLine(active: RotatorState["accounts"][number] | undefined): string {
+  if (!active) return "  no account";
   const auth = active.inAuth ? "auth" : "noauth";
-  return `active: #${active.index} ${truncate(active.label, 14)} ${active.status}/${auth}`;
+  return `  ${active.status} · ${auth}`;
 }
 
-function formatUsageLine(usage: CodexUsage | null | undefined): string {
-  if (!usage) return "usage: no snapshot";
-  if (usage.lastError) return `usage: ${usage.lastError}`;
-
-  return `usage: 5h ${formatPercent(usage.primaryWindow?.usedPercent)} | 7d ${formatPercent(usage.secondaryWindow?.usedPercent)}`;
+function formatGroupLine(active: RotatorState["accounts"][number] | undefined): string {
+  const group = active?.group?.trim() || "ungrouped";
+  return `  Group: ${truncate(group, 20)}`;
 }
 
-function formatPlanLine(usage: CodexUsage | null | undefined): string {
-  return `plan: ${formatPlanType(usage?.planType)}`;
+function formatPlanLine(active: RotatorState["accounts"][number] | undefined): string {
+  return `  Plan: ${formatPlanType(active?.codexUsage?.planType)}`;
 }
 
-function formatWatchLine(state: RotatorState): string {
-  const latestLog = [...state.watch.logs].reverse().find((entry) => entry.line.trim().length > 0)?.line.trim();
-  if (latestLog) {
-    if (state.watch.running && latestLog.startsWith("watch:")) return latestLog;
-    if (!state.watch.running) return latestLog;
-  }
-  return state.watch.running ? `watch: on pid ${state.watch.pid ?? "?"}` : "watch: stopped";
+function formatUsageLines(usage: CodexUsage | null | undefined): string[] {
+  if (!usage) return ["  no snapshot"];
+  if (usage.lastError) return [`  ${usage.lastError}`];
+
+  return [
+    `  5h ${formatUsagePercent(usage.primaryWindow?.usedPercent)}  ${usageBar(usage.primaryWindow?.usedPercent)}`,
+    `  7d ${formatUsagePercent(usage.secondaryWindow?.usedPercent)}  ${usageBar(usage.secondaryWindow?.usedPercent)}`,
+  ];
 }
 
 export function buildPanelState(state: RotatorState): RotatorPanelState {
   const active = state.accounts.find((account) => account.active) ?? state.accounts[state.activeIndex];
   const lines = [
+    "Active",
     formatAccountLine(state),
-    formatPlanLine(active?.codexUsage),
-    formatUsageLine(active?.codexUsage),
-    formatWatchLine(state),
-    `accounts: ${state.accounts.length}`,
+    formatAccountStatusLine(active),
+    formatGroupLine(active),
+    formatPlanLine(active),
+    "",
+    "Usage",
+    ...formatUsageLines(active?.codexUsage),
   ];
 
-  return { status: "ready", lines };
+  return { status: "ready", lines, header: { watchStatus: state.watch.running ? "watching" : "ready", pid: state.watch.pid } };
 }
 
 export function buildOfflinePanelState(error: unknown): RotatorPanelState {

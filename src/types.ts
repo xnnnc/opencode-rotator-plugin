@@ -18,6 +18,7 @@ export type CodexUsage = {
 export type RotatorAccount = {
   index: number;
   label: string;
+  group?: string;
   status: string;
   active: boolean;
   inAuth: boolean;
@@ -45,6 +46,7 @@ export type RotatorState = {
   watch: {
     running: boolean;
     pid: number | null;
+    group?: string | null;
     logs: WatchLogEntry[];
   };
 };
@@ -69,4 +71,4 @@ export type RotatorAction = "usage" | "watch-toggle" | "switch-next";
 export type RotatorPanelState =
   | { status: "loading"; lines: string[] }
   | { status: "offline"; lines: string[] }
-  | { status: "ready"; lines: string[] };
+  | { status: "ready"; lines: string[]; header: { watchStatus: "watching" | "ready"; pid: number | null } };
